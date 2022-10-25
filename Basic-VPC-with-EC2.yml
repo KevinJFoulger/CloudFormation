@@ -1,0 +1,89 @@
+# This works in the Ireland Region of AWS.
+# It creates an EC2 Instance with a public IP address.
+# However, you will need to amend the AMI (line 82)
+# and once created, tweek the Route Table in the AWS console
+# and the Security Group for the EC2 Instance.
+# The Web Server should then render web pages.
+# DON'T use this in Production.
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Template to create a VPC.
+
+Resources:
+  MyVPC: 
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 172.0.0.0/26
+      EnableDnsHostnames: True
+      EnableDnsSupport: True
+      Tags:
+      - Key: Name
+        Value: MyVPC
+
+  MySubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: eu-west-1a
+      CidrBlock: 172.0.0.1/28
+      Tags:
+      - Key: Name
+        Value: MySubnet-A
+      VpcId: !Ref MyVPC
+
+  MySubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-west-1b
+      CidrBlock: 172.0.0.16/28
+      Tags:
+      - Key: Name
+        Value: MySubnet-B
+      VpcId: !Ref MyVPC
+
+  MySubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-west-1c
+      CidrBlock: 172.0.0.32/28
+      Tags:
+      - Key: Name
+        Value: MySubnet-C
+      VpcId: !Ref MyVPC
+
+  MyRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+  MySubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref MyRouteTable
+      SubnetId: !Ref MySubnetA
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  MyGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref MyInternetGateway
+      VpcId: !Ref MyVPC
+  MyDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: MyGatewayAttachment
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref MyInternetGateway
+      RouteTableId: !Ref MyRouteTable
+
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: eu-west-1a
+      InstanceType: t4g.nano
+      ImageId:  Add-Your-Own-AMI-Web-Server-Image-Here
+      SubnetId: !Ref MySubnetA
+      Tags:
+      - Key: Name
+        Value: MyCFWebServer
+
